@@ -29,6 +29,9 @@ class CCircle(): # Базовый класс круга
     
     def mousecheck(self, x: int, y: int) -> bool: # Проверяет, наход. ли точка внутри круга
         return ((x - self.__x)**2 + (y - self.__y)**2) <= self.__radius**2
+    
+    def mousedist(self, x: int, y: int): # Дистанция от мышки до центра фигуры
+        return sqrt((x - self.__x)**2 + (y - self.__y)**2)
 
 class Container():
 
@@ -53,7 +56,8 @@ class Container():
         self.deselect_objects()
         
         self.__selected_container.extend(list(filter(lambda x: x.mousecheck(point.x, point.y), self.__container)))
-        for circle in set(self.__selected_container):
+        self.__selected_container.sort(key=lambda p: p.mousedist(point.x, point.y)) 
+        for circle in self.__selected_container:
             circle.set_border(True)
             if not (self.__multiple_selection):
                 break
