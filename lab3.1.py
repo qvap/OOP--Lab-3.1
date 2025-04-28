@@ -10,7 +10,7 @@ class CCircle(): # Базовый класс круга
         self.__color = "#fc7f03"
         self.__border_color = "#9c4d00"
         self.__selected_border_color = "#FFFFFF"
-        self.__selected = False
+        self.__draw_border = False
         self.__x = x
         self.__y = y
 
@@ -20,24 +20,15 @@ class CCircle(): # Базовый класс круга
         print(f"New point: {x}, {y}")
 
     def draw(self): # Отрисовывает круг на Canvas
-        __chosen_border_color = self.__selected_border_color if self.__selected else self.__border_color
+        __chosen_border_color = self.__selected_border_color if self.__draw_border else self.__border_color
         self.canvas.create_oval(self.__x - self.__radius, self.__y - self.__radius,\
             self.__x + self.__radius, self.__y + self.__radius, fill = self.__color, width = 5, outline = __chosen_border_color)
     
-    def select(self): # "Выделяет" круг
-        self.__selected = True
-    
-    def deselect(self): # Снимает "выделение" с круга
-        self.__selected = False
+    def set_border(self, should_draw: bool):
+        self.__draw_border = should_draw
     
     def mousecheck(self, x: int, y: int) -> bool: # Проверяет, наход. ли точка внутри круга
         return ((x - self.__x)**2 + (y - self.__y)**2) <= self.__radius**2
-    
-    def destroy(self) -> bool: # Уничтожает себя
-        if self.__selected:
-            del self
-            return True
-        return False
 
 class Container():
 
@@ -54,26 +45,29 @@ class Container():
         print(f"Appending new object: {object}")
         self.__container.append(object)
     
-    def create_objects(self, point): # Создаёт новый круг и добавляет в список
+    def create_object(self, point): # Создаёт новый круг и добавляет в список
+        self.deselect_objects()
         self.container_append(CCircle(x=point.x, y=point.y, canvas=self.canvas))
     
     def select_objects(self, point): # Выделяет круги (в зависимости от __multiple_selection меняется поведение)
-        if not(self.__multiple_selection):
-            for circle in self.__selected_container:
-                circle.deselect()
-            self.__selected_container.clear()
+        self.deselect_objects()
         
         self.__selected_container.extend(list(filter(lambda x: x.mousecheck(point.x, point.y), self.__container)))
-        for circle in self.__selected_container:
-            circle.select()
+        for circle in set(self.__selected_container):
+            circle.set_border(True)
+            if not (self.__multiple_selection):
+                break
     
     def deselect_objects(self, *args): # Снимает выделение со всех кругов
-        for circle in self.__selected_container:
-            circle.deselect()
-        self.__selected_container.clear()
+        if not (self.__multiple_selection):
+            for circle in self.__selected_container:
+                circle.set_border(False)
+            self.__selected_container.clear()
     
     def delete_objects(self, *args): # Удаляет выделенные объекты
-        self.__container = [obj for obj in self.__container if not obj.destroy()]
+        for obj in self.__selected_container:
+            self.__container.remove(obj)
+            del obj
         self.__selected_container.clear()
     
     def initiate_selection(self, *args): # Включает множественное выделение
@@ -81,7 +75,7 @@ class Container():
 
     def stop_selection(self, *args): # Выключает множественное выделение
         self.__multiple_selection = False
-    
+ 
     def __getattribute__(self, name): # событие Paint
         attr = super().__getattribute__(name)
         if callable(attr):
@@ -93,6 +87,7 @@ class Container():
                 return result
             return wrapper
         return attr
+    
 
 class App(ctk.CTk):
 
@@ -109,7 +104,7 @@ class App(ctk.CTk):
 
         self.container = Container(canvas=self.canvas)
 
-        self.bind("<Button-1>", self.container.create_objects)
+        self.bind("<Button-1>", self.container.create_object)
         self.bind("<Button-3>", self.container.select_objects)
         self.bind_all("<Escape>", self.container.deselect_objects)
         self.bind_all("<Delete>", self.container.delete_objects)
