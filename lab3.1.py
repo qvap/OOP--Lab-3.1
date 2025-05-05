@@ -49,7 +49,8 @@ class Container():
         self.redraw()
     
     def select_objects(self, point): # Выделяет круги (в зависимости от __multiple_selection меняется поведение)
-        self.deselect_objects()
+        if not self.__multiple_selection:
+            self.deselect_objects()
         
         for circle in self.__container:
             if circle.mousecheck(point.x, point.y):
